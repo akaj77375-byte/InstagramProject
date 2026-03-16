@@ -1,0 +1,76 @@
+package com.example.instagramproject.service.impl;
+
+import com.example.instagramproject.dto.SimpleResponse;
+import com.example.instagramproject.entity.Comment;
+import com.example.instagramproject.entity.Like;
+import com.example.instagramproject.entity.Post;
+import com.example.instagramproject.entity.User;
+import com.example.instagramproject.repo.CommentRepo;
+import com.example.instagramproject.repo.LikeRepo;
+import com.example.instagramproject.repo.PostRepo;
+import com.example.instagramproject.repo.UserRepo;
+import com.example.instagramproject.service.LikeService;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class LikeServiceImpl implements LikeService {
+
+    private final LikeRepo likeRepo;
+    private final PostRepo postRepo;
+    private final CommentRepo commentRepo;
+    private final UserRepo userRepo;
+
+@Override
+public SimpleResponse toggleLikePost(Long postId) {
+    String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    User user = userRepo.getUserByEmail(email).orElseThrow();
+
+    Optional<Like> existingLike = likeRepo.findByPostIdAndUserId(postId, user.getId());
+    
+
+    if (existingLike.isPresent()) {
+        likeRepo.delete(existingLike.get());
+        return new SimpleResponse("Лайк убран", HttpStatus.OK);
+    } else {
+        Post post = postRepo.findById(postId).orElseThrow();
+        Like like = Like.builder()
+                .userIds(new ArrayList<>(List.of(user.getId())))
+                .post(post)
+                .build();
+        likeRepo.save(like);
+        return new SimpleResponse("Лайк поставлен", HttpStatus.OK);
+    }
+}
+
+    @Override
+    public SimpleResponse toggleLikeComment(Long commentId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepo.getUserByEmail(email).orElseThrow();
+
+        Optional<Like> existingLike = likeRepo.findByCommentIdAndUserId(commentId, user.getId());
+
+        if (existingLike.isPresent()) {
+            likeRepo.delete(existingLike.get());
+            return new SimpleResponse("Лайк с комментария убран", HttpStatus.OK);
+        } else {
+            Comment comment = commentRepo.findById(commentId).orElseThrow();
+            Like like = Like.builder()
+                    .userIds(new ArrayList<>(List.of(user.getId())))
+                    .comment(comment)
+                    .build();
+            likeRepo.save(like);
+            return new SimpleResponse("Комментарий лайкнут", HttpStatus.OK);
+        }
+    }
+
+}
