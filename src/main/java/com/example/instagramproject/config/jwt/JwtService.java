@@ -24,6 +24,7 @@ public class JwtService {
     public String generateToken(User user) {
         Algorithm algorithm = Algorithm.HMAC256(secretKey);
         return JWT.create()
+                .withClaim("id",user.getId())
                 .withClaim("email", user.getEmail())
                 .withClaim("role", user.getRole().name())
                 .withIssuedAt(ZonedDateTime.now().toInstant())
